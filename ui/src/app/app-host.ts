@@ -249,6 +249,8 @@ class OpenClawShell
   storedOutboxScopeHost(context: ApplicationContext): StoredOutboxScopeHost {
     const gatewaySnapshot = context.gateway.snapshot;
     return {
+      client: gatewaySnapshot.client,
+      connected: gatewaySnapshot.phase === "connected",
       settings: { gatewayUrl: context.gateway.connection.gatewayUrl },
       assistantAgentId: gatewaySnapshot.assistantAgentId,
       agentsList: context.agents.state.agentsList,
@@ -370,11 +372,7 @@ class OpenClawShell
       )
       .watchStore(
         () => this.context?.placementStartup,
-        () => {
-          if (this.context) {
-            this.recoverDeletedActiveSession(this.context.sessions.state);
-          }
-        },
+        () => this.recoverDeletedActiveSession(),
       )
       .watch(
         () => this.context?.runtimeConfig,
@@ -453,6 +451,7 @@ class OpenClawShell
     this.storedOutboxes = context
       ? this.outboxStoreRuntime?.read(this.storedOutboxScopeHost(context))
       : undefined;
+    context?.nativeConversation?.publishSessionFacts(this.storedOutboxes?.sessions ?? null);
   }
 
   private readonly refreshStoredOutboxPresentation = () => {
